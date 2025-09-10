@@ -30,12 +30,17 @@ playwright install chromium
 
 ```
 smartVisionQA/
-├── smartVisionQA.py      # Script principal
-├── demo/                 # HTMLs de ejemplo
-│   ├── page_v1.html     # Versión 1
-│   └── page_v2.html     # Versión 2 con cambios
-├── results/             # Capturas y reportes (generado)
-└── requirements.txt     # Dependencias
+├── smartVisionQA.py           # Script principal
+├── generate_html_report.py    # Generador de reportes HTML
+├── demo/                      # HTMLs de ejemplo
+│   ├── page_v1.html          # Versión 1
+│   ├── page_v2.html          # Versión 2 con cambios
+│   └── simple_test.html      # Página de prueba simple
+├── results/                   # Capturas y reportes (generado)
+│   ├── comparison_report.json # Reporte JSON
+│   ├── visual_report.html     # Reporte HTML visual
+│   └── *.png                  # Capturas de pantalla
+└── requirements.txt           # Dependencias
 ```
 
 ## Uso
@@ -64,6 +69,19 @@ test_cases = [
 **Línea 52** - Cambiar modelo de Ollama:
 ```python
 def __init__(self, model: str = "llava:13b"):  # Para más precisión
+```
+
+## Reportes HTML
+
+El sistema genera automáticamente reportes HTML visuales:
+
+```bash
+python smartVisionQA.py  # Genera JSON + HTML automáticamente
+```
+
+Para generar solo reporte HTML desde JSON existente:
+```bash
+python generate_html_report.py results/comparison_report.json
 ```
 
 ## Extensión
