@@ -14,6 +14,7 @@ import ollama
 from playwright.async_api import async_playwright
 from PIL import Image
 import io
+from generate_html_report import generate_from_json
 
 
 class HTMLRenderer:
@@ -170,13 +171,17 @@ class SmartVisionQA:
         with open(report_path, 'w') as f:
             json.dump(results, f, indent=2)
         
-        print(f"\nReporte guardado en: {report_path}")
+        # Generar reporte HTML visual
+        html_report_path = generate_from_json(report_path, self.results_dir)
+        
+        print(f"\nReporte JSON guardado en: {report_path}")
+        print(f"Reporte HTML guardado en: {html_report_path}")
 
 
 async def main():
     qa = SmartVisionQA()
     
-    # Casos de prueba
+    # Casos de prueba con archivos locales
     test_cases = [
         ("page_v1.html", "page_v2.html"),
     ]
@@ -187,6 +192,18 @@ async def main():
             qa.generate_report(results)
         except Exception as e:
             print(f"Error en comparación {html1} vs {html2}: {e}")
+    
+    # EJEMPLO: Comparar URLs reales (descomentar para usar)
+    # url_tests = [
+    #     ("https://example.com", "https://example.org"),
+    # ]
+    # 
+    # for url1, url2 in url_tests:
+    #     try:
+    #         results = await qa.run_url_comparison(url1, url2)
+    #         qa.generate_report(results)
+    #     except Exception as e:
+    #         print(f"Error en comparación {url1} vs {url2}: {e}")
 
 
 if __name__ == "__main__":
