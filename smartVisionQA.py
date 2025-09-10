@@ -40,7 +40,7 @@ class HTMLRenderer:
 class VisionAnalyzer:
     """Analiza y compara imágenes usando Ollama"""
     # tested models: gemma3:4b | gemma3:12b | llava:7b
-    def __init__(self, model: str = "gemma3:12b"):
+    def __init__(self, model: str = "gemma3:4b"):
         self.model = model
         self.client = ollama.Client()
     
@@ -100,8 +100,28 @@ class VisionAnalyzer:
         
         # Intentar parsear como JSON
         try:
-            result = json.loads(response['response'])
-        except:
+            raw_response = response['response']
+            # Limpiar el response de posibles caracteres extra antes/después del JSON
+            json_start = raw_response.find('{')
+            json_end = raw_response.rfind('}') + 1
+            
+            if json_start != -1 and json_end > json_start:
+                json_str = raw_response[json_start:json_end]
+                result = json.loads(json_str)
+                
+                # Limpiar cada lista de cambios
+                for key in ['layout_changes', 'text_changes', 'style_changes', 'element_changes']:
+                    if key in result and isinstance(result[key], list):
+                        # Filtrar elementos vacíos o inválidos
+                        result[key] = [
+                            change for change in result[key] 
+                            if change and isinstance(change, str) and change.strip() 
+                            and change != key and not change.startswith(f'"{key}"')
+                        ]
+            else:
+                raise ValueError("No valid JSON found")
+                
+        except Exception as e:
             result = {
                 "raw_response": response['response'],
                 "layout_changes": [],
