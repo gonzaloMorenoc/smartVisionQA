@@ -34,7 +34,7 @@ class HTMLReportGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visual QA Report - {file1_name} vs {file2_name}</title>
+    <title>Smart Vision QA Report - {file1_name} vs {file2_name}</title>
     <style>
         * {{
             margin: 0;
@@ -462,7 +462,7 @@ class HTMLReportGenerator:
 <body>
     <div class="container">
         <div class="header">
-            <h1>Visual QA Report</h1>
+            <h1>Smart Vision QA Report</h1>
             <div class="comparison-info">
                 Comparing: <strong>V1: {results['file1']}</strong> vs <strong>V2: {results['file2']}</strong>
             </div>
@@ -480,7 +480,7 @@ class HTMLReportGenerator:
         </div>
         
         <div class="analysis-section">
-            <h2>Visual Analysis Results</h2>
+            <h2>Analysis Results</h2>
             {self._generate_changes_html(diff)}
         </div>
         

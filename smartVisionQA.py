@@ -36,14 +36,31 @@ class HTMLRenderer:
                 output_path.write_bytes(screenshot)
             
             return screenshot
+    
+    async def url_to_image(self, url: str, output_path: Path = None) -> bytes:
+        """Captura una URL como imagen"""
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            page = await browser.new_page()
+            
+            await page.goto(url, wait_until="networkidle")
+            await page.wait_for_timeout(2000)
+            
+            screenshot = await page.screenshot(full_page=True)
+            await browser.close()
+            
+            if output_path:
+                output_path.write_bytes(screenshot)
+            
+            return screenshot
 
 class VisionAnalyzer:
-    """Analiza y compara imágenes usando Ollama"""
+    """Analiza y compara imágenes usando Ollama. El modelo más eficaz de los que he probado para imagenes es qwen2.5vl:7b"""
     # tested models: gemma3:4b | gemma3:12b | llava:7b | qwen2.5vl:7b
     def __init__(self, model: str = "qwen2.5vl:7b"):
         self.model = model
         self.client = ollama.Client()
-    
+        
     def encode_image(self, image_bytes: bytes) -> str:
         return base64.b64encode(image_bytes).decode('utf-8')
     
@@ -176,6 +193,29 @@ class SmartVisionQA:
         return {
             "file1": html1,
             "file2": html2,
+            "differences": differences
+        }
+    
+    async def run_url_comparison(self, url1: str, url2: str) -> Dict:
+        """Compara dos URLs capturando sus páginas web"""
+        print(f"Capturando {url1}...")
+        img1 = await self.renderer.url_to_image(
+            url1,
+            self.results_dir / f"url1_screenshot.png"
+        )
+        
+        print(f"Capturando {url2}...")
+        img2 = await self.renderer.url_to_image(
+            url2,
+            self.results_dir / f"url2_screenshot.png"
+        )
+        
+        print("Analizando diferencias con Ollama...")
+        differences = self.analyzer.compare_images(img1, img2)
+        
+        return {
+            "file1": url1,
+            "file2": url2,
             "differences": differences
         }
     
