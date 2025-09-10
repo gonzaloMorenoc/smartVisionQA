@@ -464,7 +464,7 @@ class HTMLReportGenerator:
         <div class="header">
             <h1>Visual QA Report</h1>
             <div class="comparison-info">
-                Comparing: <strong>{results['file1']}</strong> vs <strong>{results['file2']}</strong>
+                Comparing: <strong>V1: {results['file1']}</strong> vs <strong>V2: {results['file2']}</strong>
             </div>
         </div>
         

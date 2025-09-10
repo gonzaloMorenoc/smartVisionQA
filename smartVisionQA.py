@@ -39,8 +39,8 @@ class HTMLRenderer:
 
 class VisionAnalyzer:
     """Analiza y compara imágenes usando Ollama"""
-    # tested models: gemma3:4b | gemma3:12b | llava:7b
-    def __init__(self, model: str = "gemma3:4b"):
+    # tested models: gemma3:4b | gemma3:12b | llava:7b | qwen2.5vl:7b
+    def __init__(self, model: str = "qwen2.5vl:7b"):
         self.model = model
         self.client = ollama.Client()
     
@@ -60,7 +60,11 @@ class VisionAnalyzer:
         return response['response']
     
     def compare_images(self, img1_bytes: bytes, img2_bytes: bytes) -> Dict:
-        prompt = """Compare these two webpage screenshots systematically. The first image is on top, second on bottom.
+        prompt = """You are analyzing two versions of a webpage: VERSION 1 (V1) vs VERSION 2 (V2).
+
+        V1 is the FIRST/ORIGINAL version, V2 is the SECOND/UPDATED version.
+        
+        Compare V1 against V2 and identify ONLY actual visual differences. Be precise and specific.
         
         Analyze and list specific differences in these categories:
         
@@ -69,7 +73,11 @@ class VisionAnalyzer:
         3. STYLE CHANGES: Color scheme differences, font changes, border styles, shadows, gradients
         4. ELEMENT CHANGES: New buttons, badges, banners, missing elements, additional cards
         
-        Be specific about what changed from the first image to the second image.
+        Rules:
+        - Only report differences that actually exist between V1 and V2
+        - Use format "V1 has X, V2 has Y" for clarity
+        - Ignore minor pixel differences or rendering artifacts
+        - If no differences exist in a category, leave the array empty
         
         Format response as valid JSON with keys: layout_changes, text_changes, style_changes, element_changes
         Each should contain an array of specific change descriptions."""

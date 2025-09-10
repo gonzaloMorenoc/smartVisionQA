@@ -6,7 +6,7 @@ Prueba de concepto para testing visual automatizado usando Ollama y modelos de v
 
 - Python 3.8+
 - Ollama instalado y ejecutándose
-- Modelo de visión gemma3:4b descargado
+- Modelo de visión qwen2.5vl:7b descargado
 
 ## Instalación
 
@@ -17,7 +17,7 @@ curl -fsSL https://ollama.ai/install.sh | sh
 
 2. Descargar modelo de visión:
 ```bash
-ollama pull gemma3:4b
+ollama pull qwen2.5vl:7b
 ```
 
 3. Instalar dependencias Python:
@@ -75,7 +75,7 @@ test_cases = [
 
 **Línea 52** - Cambiar modelo de Ollama:
 ```python
-def __init__(self, model: str = "gemma3:12b"):  # Para más precisión
+def __init__(self, model: str = "qwen2.5vl:7b"): 
 ```
 
 ## Reportes HTML
@@ -113,6 +113,6 @@ async def url_to_image(self, url: str) -> bytes:
 
 ## Notas
 
-- Requiere ~4GB RAM para modelo gemma3:4b
-- Primera ejecución descarga modelo (~4GB)
+- Requiere ~6GB para modelo qwen2.5vl:7b
+- Primera ejecución descarga modelo (~6GB)
 - Capturas guardadas en `results/`
