@@ -1,6 +1,6 @@
 # SmartVisionQA
 
-Prueba de concepto para testing visual automatizado usando Ollama y modelos de visión locales.
+Prueba de concepto para testing visual automatizado usando modelos de visión locales con Ollama.
 
 ## Requisitos
 
@@ -30,19 +30,19 @@ playwright install chromium
 
 ```
 smartVisionQA/
-├── smartVisionQA.py           # Script principal
-├── generate_html_report.py    # Generador de reportes HTML
-├── expected_differences.md    # Diferencias esperadas para validación
-├── demo/                      # HTMLs de ejemplo
-│   ├── page_v1.html          # Versión 1 (original)
-│   ├── page_v2.html          # Versión 2 (cambios mayores)
-│   ├── page_v3.html          # Versión 3 (cambios menores)
-│   └── simple_test.html      # Página de prueba simple
-├── results/                   # Capturas y reportes (generado)
-│   ├── comparison_*.json      # Reportes JSON por comparación
-│   ├── visual_report_*.html   # Reportes HTML visuales
-│   └── *_screenshot.png       # Capturas de pantalla
-└── requirements.txt           # Dependencias
+├── smartVisionQA.py            # Script principal
+├── generate_html_report.py     # Generador complejo (legacy)
+├── example_url_comparison.py   # Ejemplos de uso con URLs
+├── demo/                       # HTMLs de ejemplo
+│   ├── page_v1.html           # Versión 1 (original)
+│   ├── page_v2.html           # Versión 2 (cambios mayores)
+│   ├── page_v3.html           # Versión 3 (cambios menores)
+│   └── simple_test.html       # Página de prueba simple
+├── results/                    # Capturas y reportes (generado automáticamente)
+│   ├── comparison_*.json       # Reportes JSON por comparación
+│   ├── visual_report_*.html    # Reportes HTML visuales
+│   └── *_screenshot.png        # Capturas de pantalla
+└── requirements.txt            # Dependencias
 ```
 
 ## Uso
@@ -66,14 +66,14 @@ Para cada comparación:
 
 Para comparar otros HTMLs, modificar en `smartVisionQA.py`:
 
-**Línea 169-171** - Lista de casos de prueba:
+**Aproximadamente línea 300** - Lista de casos de prueba:
 ```python
 test_cases = [
     ("tu_archivo1.html", "tu_archivo2.html"),
 ]
 ```
 
-**Línea 52** - Cambiar modelo de Ollama:
+**Línea 59** - Cambiar modelo de Ollama:
 ```python
 def __init__(self, model: str = "qwen2.5vl:7b"): 
 ```
@@ -88,17 +88,19 @@ python smartVisionQA.py  # Genera JSON + HTML automáticamente
 
 Para generar solo reporte HTML desde JSON existente:
 ```bash
-python generate_html_report.py results/comparison_page_v1_vs_page_v2.json
+python generate_simple_report.py results/comparison_page_v1_vs_page_v2.json
+```
+![SmartQA Report](resources/img/VisualAnalysisResults.png)
+
+## Comparar URLs Reales
+
+Para comparar sitios web reales:
+
+```bash
+python example_url_comparison.py
 ```
 
-## Validación de Resultados
-
-Para verificar que el sistema detecta correctamente:
-
-1. Ejecuta las pruebas: `python smartVisionQA.py`
-2. Revisa `expected_differences.md` para ver los cambios esperados
-3. Compara con los reportes generados en `results/`
-4. Los reportes HTML muestran visualización lado a lado
+Puedes modificar las URLs en el archivo `example_url_comparison.py`.
 
 ## Extensión
 
