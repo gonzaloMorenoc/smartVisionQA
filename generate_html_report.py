@@ -491,7 +491,10 @@ class HTMLReportGenerator:
 </body>
 </html>"""
         
-        report_path = self.results_dir / "visual_report.html"
+        file1_name = results['file1'].replace('.html', '')
+        file2_name = results['file2'].replace('.html', '')
+        report_filename = f"visual_report_{file1_name}_vs_{file2_name}.html"
+        report_path = self.results_dir / report_filename
         with open(report_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
         

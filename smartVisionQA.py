@@ -39,8 +39,8 @@ class HTMLRenderer:
 
 class VisionAnalyzer:
     """Analiza y compara imágenes usando Ollama"""
-    
-    def __init__(self, model: str = "llava:7b"):
+    # tested models: gemma3:4b | gemma3:12b | llava:7b
+    def __init__(self, model: str = "gemma3:12b"):
         self.model = model
         self.client = ollama.Client()
     
@@ -60,13 +60,19 @@ class VisionAnalyzer:
         return response['response']
     
     def compare_images(self, img1_bytes: bytes, img2_bytes: bytes) -> Dict:
-        prompt = """Compare these two webpage screenshots and identify:
-        1. Visual differences in layout
-        2. Text changes
-        3. Color or style differences
-        4. Missing or new elements
+        prompt = """Compare these two webpage screenshots systematically. The first image is on top, second on bottom.
         
-        Format: JSON with keys: layout_changes, text_changes, style_changes, element_changes"""
+        Analyze and list specific differences in these categories:
+        
+        1. LAYOUT CHANGES: Grid changes, element positioning, spacing, new/removed sections
+        2. TEXT CHANGES: Title changes, button text changes, content modifications, statistics changes
+        3. STYLE CHANGES: Color scheme differences, font changes, border styles, shadows, gradients
+        4. ELEMENT CHANGES: New buttons, badges, banners, missing elements, additional cards
+        
+        Be specific about what changed from the first image to the second image.
+        
+        Format response as valid JSON with keys: layout_changes, text_changes, style_changes, element_changes
+        Each should contain an array of specific change descriptions."""
         
         # Crear imagen combinada para comparación
         img1 = Image.open(io.BytesIO(img1_bytes))
@@ -166,8 +172,11 @@ class SmartVisionQA:
                     else:
                         print(f"  {changes}")
         
-        # Guardar reporte JSON
-        report_path = self.results_dir / "comparison_report.json"
+        # Guardar reporte JSON único para cada comparación
+        file1_name = results['file1'].replace('.html', '')
+        file2_name = results['file2'].replace('.html', '')
+        report_filename = f"comparison_{file1_name}_vs_{file2_name}.json"
+        report_path = self.results_dir / report_filename
         with open(report_path, 'w') as f:
             json.dump(results, f, indent=2)
         
@@ -184,6 +193,8 @@ async def main():
     # Casos de prueba con archivos locales
     test_cases = [
         ("page_v1.html", "page_v2.html"),
+        ("page_v1.html", "page_v3.html"),
+        ("page_v2.html", "page_v3.html"),
     ]
     
     for html1, html2 in test_cases:

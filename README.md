@@ -6,7 +6,7 @@ Prueba de concepto para testing visual automatizado usando Ollama y modelos de v
 
 - Python 3.8+
 - Ollama instalado y ejecutándose
-- Modelo de visión LLaVA descargado
+- Modelo de visión gemma3:4b descargado
 
 ## Instalación
 
@@ -17,7 +17,7 @@ curl -fsSL https://ollama.ai/install.sh | sh
 
 2. Descargar modelo de visión:
 ```bash
-ollama pull llava:7b
+ollama pull gemma3:4b
 ```
 
 3. Instalar dependencias Python:
@@ -32,28 +32,35 @@ playwright install chromium
 smartVisionQA/
 ├── smartVisionQA.py           # Script principal
 ├── generate_html_report.py    # Generador de reportes HTML
+├── expected_differences.md    # Diferencias esperadas para validación
 ├── demo/                      # HTMLs de ejemplo
-│   ├── page_v1.html          # Versión 1
-│   ├── page_v2.html          # Versión 2 con cambios
+│   ├── page_v1.html          # Versión 1 (original)
+│   ├── page_v2.html          # Versión 2 (cambios mayores)
+│   ├── page_v3.html          # Versión 3 (cambios menores)
 │   └── simple_test.html      # Página de prueba simple
 ├── results/                   # Capturas y reportes (generado)
-│   ├── comparison_report.json # Reporte JSON
-│   ├── visual_report.html     # Reporte HTML visual
-│   └── *.png                  # Capturas de pantalla
+│   ├── comparison_*.json      # Reportes JSON por comparación
+│   ├── visual_report_*.html   # Reportes HTML visuales
+│   └── *_screenshot.png       # Capturas de pantalla
 └── requirements.txt           # Dependencias
 ```
 
 ## Uso
 
-Ejecutar comparación básica:
+Ejecutar todas las comparaciones:
 ```bash
 python smartVisionQA.py
 ```
 
-El script:
+El script ejecuta automáticamente:
+- page_v1.html vs page_v2.html
+- page_v1.html vs page_v3.html  
+- page_v2.html vs page_v3.html
+
+Para cada comparación:
 1. Renderiza los HTMLs a imágenes
 2. Usa Ollama para analizar diferencias visuales
-3. Genera reporte en `results/comparison_report.json`
+3. Genera reporte JSON y HTML únicos
 
 ## Personalización
 
@@ -68,7 +75,7 @@ test_cases = [
 
 **Línea 52** - Cambiar modelo de Ollama:
 ```python
-def __init__(self, model: str = "llava:13b"):  # Para más precisión
+def __init__(self, model: str = "gemma3:12b"):  # Para más precisión
 ```
 
 ## Reportes HTML
@@ -81,8 +88,17 @@ python smartVisionQA.py  # Genera JSON + HTML automáticamente
 
 Para generar solo reporte HTML desde JSON existente:
 ```bash
-python generate_html_report.py results/comparison_report.json
+python generate_html_report.py results/comparison_page_v1_vs_page_v2.json
 ```
+
+## Validación de Resultados
+
+Para verificar que el sistema detecta correctamente:
+
+1. Ejecuta las pruebas: `python smartVisionQA.py`
+2. Revisa `expected_differences.md` para ver los cambios esperados
+3. Compara con los reportes generados en `results/`
+4. Los reportes HTML muestran visualización lado a lado
 
 ## Extensión
 
@@ -97,6 +113,6 @@ async def url_to_image(self, url: str) -> bytes:
 
 ## Notas
 
-- Requiere ~4GB RAM para modelo llava:7b
+- Requiere ~4GB RAM para modelo gemma3:4b
 - Primera ejecución descarga modelo (~4GB)
 - Capturas guardadas en `results/`

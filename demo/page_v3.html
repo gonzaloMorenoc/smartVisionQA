@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartVision Demo - v3</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .feature-card p {
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .stats {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        
+        .alert-banner {
+            background: #f59e0b;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="alert-banner">
+            🚀 New Feature: Real-time collaboration now available!
+        </div>
+        
+        <header>
+            <h1>SmartVision QA Platform</h1>
+            <p class="subtitle">Automated Visual Testing for Modern Web Applications</p>
+        </header>
+        
+        <div class="features">
+            <div class="feature-card">
+                <h3>Advanced Visual Testing</h3>
+                <p>Detect visual changes automatically between different versions using enhanced AI models with better accuracy.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>AI-Powered Analysis</h3>
+                <p>Leverage Ollama's vision models to understand and compare visual elements intelligently.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>Easy Integration</h3>
+                <p>Simple Python API that integrates seamlessly with your existing CI/CD pipeline.</p>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number">98%</div>
+                <div class="stat-label">Accuracy</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">15x</div>
+                <div class="stat-label">Faster Testing</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">750+</div>
+                <div class="stat-label">Tests Daily</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">24/7</div>
+                <div class="stat-label">Monitoring</div>
+            </div>
+        </div>
+        
+        <center>
+            <button class="button">Get Started</button>
+        </center>
+    </div>
+</body>
+</html>
