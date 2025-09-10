@@ -503,12 +503,20 @@ class HTMLReportGenerator:
     def _generate_changes_html(self, diff: Dict) -> str:
         """Genera HTML para los cambios detectados"""
         
+        # Si tenemos datos estructurados JSON, usarlos directamente
+        if any(diff.get(key) for key in ['layout_changes', 'text_changes', 'style_changes', 'element_changes']):
+            return self._generate_structured_changes(diff)
+        
+        # Si solo tenemos raw_response, parsearlo
         if 'raw_response' in diff:
-            # Analizar el texto para extraer insights visuales
             analysis_data = self._parse_raw_analysis(diff['raw_response'])
             return self._create_visual_analysis(analysis_data, diff['raw_response'])
         
-        # Procesar datos estructurados
+        return self._generate_no_changes_dashboard()
+
+    def _generate_structured_changes(self, diff: Dict) -> str:
+        """Genera HTML desde datos JSON estructurados"""
+        
         change_types = {
             'layout_changes': ('layout', 'Layout Changes', '🏗️'),
             'text_changes': ('text', 'Text Changes', '📝'), 
@@ -521,52 +529,170 @@ class HTMLReportGenerator:
         
         for key, (css_class, title, icon) in change_types.items():
             changes = diff.get(key, [])
-            if changes:
-                count = len(changes) if isinstance(changes, list) else 1
-                total_changes += count
-                change_categories.append({
-                    'type': css_class,
-                    'title': title,
-                    'icon': icon,
-                    'count': count,
-                    'changes': changes
-                })
+            
+            # Filtrar elementos vacíos o que sean la propia clave
+            if changes and isinstance(changes, list):
+                # Limpiar la lista de cambios
+                clean_changes = []
+                for change in changes:
+                    # Convertir a string y limpiar
+                    change_str = str(change).strip()
+                    
+                    # Ignorar si es la propia clave, está vacío, o es solo formato JSON
+                    if (change_str and 
+                        change_str != key and 
+                        not change_str.startswith(f'"{key}"') and
+                        not change_str.startswith(key + ':') and
+                        change_str not in ['[', ']', '{', '}', '[]']):
+                        clean_changes.append(change_str)
+                
+                if clean_changes:  # Solo añadir si hay cambios reales
+                    total_changes += len(clean_changes)
+                    change_categories.append({
+                        'type': css_class,
+                        'title': title,
+                        'icon': icon,
+                        'count': len(clean_changes),
+                        'changes': clean_changes
+                    })
         
         if total_changes == 0:
             return self._generate_no_changes_dashboard()
         
-        return self._generate_changes_dashboard(change_categories, total_changes)
+        # Dashboard con métricas
+        dashboard_html = self._generate_changes_dashboard(change_categories, total_changes)
+        
+        # Añadir sección detallada con cada cambio individual
+        details_html = self._generate_detailed_changes(change_categories)
+        
+        # Si hay raw_response, añadirlo como sección expandible
+        if 'raw_response' in diff:
+            details_html += self._generate_formatted_analysis(diff['raw_response'])
+        
+        return dashboard_html + details_html
     
+    def _generate_detailed_changes(self, categories: list) -> str:
+        """Genera sección HTML con lista detallada de cambios"""
+        
+        if not categories:
+            return ""
+        
+        details_html = """
+        <div class="analysis-section" style="margin-top: 30px;">
+            <h2>📋 Detailed Changes</h2>
+        """
+        
+        for category in categories:
+            color_map = {
+                'layout': '#fef3f2',
+                'text': '#fff7ed',
+                'style': '#f0f9ff',
+                'element': '#f0fdf4'
+            }
+            
+            details_html += f"""
+            <div class="change-category {category['type']}" style="background: {color_map.get(category['type'], '#f8fafc')};">
+                <h3>
+                    <span style="margin-right: 10px;">{category['icon']}</span>
+                    {category['title']} 
+                    <span style="background: #e2e8f0; padding: 2px 8px; border-radius: 12px; font-size: 0.9rem; margin-left: 10px;">
+                        {category['count']} change{'s' if category['count'] > 1 else ''}
+                    </span>
+                </h3>
+                <ul class="change-list">
+        """
+            
+            # Mostrar cada cambio individual
+            for i, change in enumerate(category['changes'], 1):
+                change_text = change if isinstance(change, str) else str(change)
+                details_html += f"""
+                    <li style="display: flex; align-items: start;">
+                        <span style="color: #64748b; min-width: 25px; font-weight: 600;">{i}.</span>
+                        <span style="flex: 1; color: #374151;">{change_text}</span>
+                    </li>
+                """
+            
+            details_html += """
+                </ul>
+            </div>
+            """
+        
+        details_html += """
+        </div>
+        """
+        
+        return details_html
+
     def _parse_raw_analysis(self, raw_text: str) -> Dict:
-        """Extrae insights del análisis de texto libre"""
-        keywords = {
-            'layout': ['layout', 'position', 'grid', 'flex', 'alignment', 'structure'],
-            'text': ['text', 'font', 'typography', 'content', 'heading', 'paragraph'],
-            'style': ['color', 'background', 'border', 'shadow', 'gradient', 'style'],
-            'element': ['button', 'element', 'component', 'widget', 'card', 'section']
+        """Extrae insights categorizados del análisis de texto libre"""
+        
+        categories = {
+            'layout': {
+                'keywords': ['layout', 'position', 'grid', 'flex', 'alignment', 'structure', 'spacing', 'moved'],
+                'changes': []
+            },
+            'text': {
+                'keywords': ['text', 'font', 'typography', 'content', 'heading', 'paragraph', 'title', 'label'],
+                'changes': []
+            },
+            'style': {
+                'keywords': ['color', 'background', 'border', 'shadow', 'gradient', 'style', 'theme', 'dark'],
+                'changes': []
+            },
+            'element': {
+                'keywords': ['button', 'element', 'component', 'widget', 'card', 'section', 'badge', 'banner'],
+                'changes': []
+            }
         }
         
-        detected_changes = {'layout': 0, 'text': 0, 'style': 0, 'element': 0}
-        insights = []
+        # Dividir por líneas o frases
+        lines = raw_text.replace('. ', '.\n').split('\n')
         
-        sentences = raw_text.split('.')
-        for sentence in sentences:
-            sentence_lower = sentence.lower().strip()
-            if sentence_lower:
-                insights.append(sentence_lower.capitalize())
+        for line in lines:
+            line_clean = line.strip()
+            
+            # Ignorar líneas que son formato JSON o están vacías
+            if (not line_clean or 
+                len(line_clean) < 10 or
+                line_clean in ['[', ']', '{', '}'] or
+                any(line_clean.startswith(f'"{key}_changes"') for key in categories.keys()) or
+                any(line_clean.startswith(f'{key}_changes:') for key in categories.keys())):
+                continue
                 
-                for category, words in keywords.items():
-                    if any(word in sentence_lower for word in words):
-                        detected_changes[category] += 1
+            # Asignar cada línea a la categoría más relevante
+            best_match = None
+            best_score = 0
+            
+            for cat_name, cat_data in categories.items():
+                score = sum(1 for keyword in cat_data['keywords'] 
+                        if keyword.lower() in line_clean.lower())
+                if score > best_score:
+                    best_score = score
+                    best_match = cat_name
+            
+            if best_match and best_score > 0:
+                # Limpiar y capitalizar la línea
+                clean_line = line_clean.strip('.-,[]"\' ')
+                if clean_line and not clean_line[0].isupper():
+                    clean_line = clean_line[0].upper() + clean_line[1:]
+                
+                # No añadir si es una clave JSON
+                if not any(clean_line.lower().endswith('_changes') for _ in categories.keys()):
+                    categories[best_match]['changes'].append(clean_line)
+        
+        # Contar cambios detectados
+        detected_changes = {cat: len(data['changes']) 
+                        for cat, data in categories.items()}
         
         return {
+            'categories': categories,
             'detected_changes': detected_changes,
-            'insights': insights[:8],  # Máximo 8 insights
             'total_changes': sum(detected_changes.values())
         }
     
     def _create_visual_analysis(self, analysis_data: Dict, raw_text: str) -> str:
         """Crea análisis visual desde datos parseados"""
+        
         change_types = {
             'layout': ('layout', 'Layout Changes', '🏗️'),
             'text': ('text', 'Text Changes', '📝'),
@@ -577,31 +703,66 @@ class HTMLReportGenerator:
         categories = []
         total_changes = analysis_data['total_changes']
         
+        # Usar los cambios categorizados específicos
         for key, (css_class, title, icon) in change_types.items():
-            count = analysis_data['detected_changes'][key]
-            if count > 0:
-                categories.append({
-                    'type': css_class,
-                    'title': title,
-                    'icon': icon,
-                    'count': count,
-                    'changes': analysis_data['insights']
-                })
+            if key in analysis_data.get('categories', {}):
+                changes = analysis_data['categories'][key]['changes']
+                if changes:
+                    categories.append({
+                        'type': css_class,
+                        'title': title,
+                        'icon': icon,
+                        'count': len(changes),
+                        'changes': changes  # Cambios específicos por categoría
+                    })
         
+        if not categories:
+            return self._generate_no_changes_dashboard()
+        
+        # Dashboard con métricas
         dashboard_html = self._generate_changes_dashboard(categories, total_changes)
         
-        # Añadir análisis completo como sección expandible
-        dashboard_html += f"""
-        <div class="detailed-analysis">
+        # Detalles de cambios
+        details_html = self._generate_detailed_changes(categories)
+        
+        # Análisis formateado (no JSON crudo)
+        details_html += self._generate_formatted_analysis(raw_text)
+        
+        return dashboard_html + details_html
+    
+    def _generate_formatted_analysis(self, raw_text: str) -> str:
+        """Genera versión formateada del análisis AI"""
+        
+        # Formatear el texto para mejor legibilidad
+        formatted_lines = []
+        for line in raw_text.split('\n'):
+            line = line.strip()
+            if line:
+                # Detectar y formatear secciones
+                if any(marker in line.upper() for marker in ['LAYOUT', 'TEXT', 'STYLE', 'ELEMENT']):
+                    formatted_lines.append(f"<strong>{line}</strong>")
+                elif line.startswith('-') or line.startswith('•') or line.startswith('*'):
+                    formatted_lines.append(f"  {line}")
+                else:
+                    formatted_lines.append(line)
+        
+        formatted_text = '<br>'.join(formatted_lines)
+        
+        return f"""
+        <div class="detailed-analysis" style="margin-top: 30px;">
             <details>
-                <summary>View Detailed AI Analysis</summary>
-                <div class="raw-analysis">{raw_text}</div>
+                <summary style="cursor: pointer; padding: 15px; background: #f8fafc; border-radius: 8px; font-weight: 600;">
+                    🤖 View AI Analysis Summary
+                </summary>
+                <div style="padding: 20px; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; margin-top: -1px;">
+                    <div style="font-family: 'Segoe UI', sans-serif; line-height: 1.8; color: #374151;">
+                        {formatted_text}
+                    </div>
+                </div>
             </details>
         </div>
         """
         
-        return dashboard_html
-    
     def _generate_no_changes_dashboard(self) -> str:
         """Dashboard cuando no hay cambios"""
         return """
