@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartVision Demo - v2</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+            padding: 40px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            margin-bottom: 40px;
+            border: 2px solid #0f2027;
+        }
+        
+        h1 {
+            color: #0f2027;
+            font-size: 3rem;
+            margin-bottom: 15px;
+            font-weight: 800;
+        }
+        
+        .subtitle {
+            color: #2c5364;
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+            border-left: 4px solid #ff6b6b;
+        }
+        
+        .feature-card:hover {
+            transform: scale(1.05);
+            background: white;
+        }
+        
+        .feature-card h3 {
+            color: #0f2027;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .feature-card p {
+            color: #444;
+            line-height: 1.7;
+            font-size: 1.05rem;
+        }
+        
+        .new-feature {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .new-feature h3 {
+            color: white;
+        }
+        
+        .new-feature p {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        .stats {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            padding: 35px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 30px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+        
+        .stat-label {
+            color: #0f2027;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+        }
+        
+        .button {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .button:hover {
+            background: #ff5252;
+        }
+        
+        .button-secondary {
+            background: transparent;
+            border: 2px solid white;
+        }
+        
+        .button-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SmartVision QA Pro <span class="badge">NEW 2.0</span></h1>
+            <p class="subtitle">Enterprise Visual Testing Platform with Advanced ML Capabilities</p>
+        </header>
+        
+        <div class="features">
+            <div class="feature-card">
+                <h3>Intelligent Visual Testing</h3>
+                <p>Our enhanced AI algorithms now detect even the smallest visual regressions with 99.9% accuracy using state-of-the-art computer vision.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>Multi-Model Support</h3>
+                <p>Support for multiple vision models including LLaVA, CLIP, and custom trained models for specific use cases.</p>
+            </div>
+            
+            <div class="feature-card">
+                <h3>Cloud-Native Architecture</h3>
+                <p>Fully scalable cloud infrastructure with distributed testing capabilities and real-time collaboration features.</p>
+            </div>
+            
+            <div class="feature-card new-feature">
+                <h3>Real-Time Monitoring</h3>
+                <p>New! Monitor your production sites 24/7 with instant alerts for any visual anomalies or unexpected changes.</p>
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-number">99.9%</div>
+                <div class="stat-label">Precision Rate</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">50x</div>
+                <div class="stat-label">Performance Boost</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">10K+</div>
+                <div class="stat-label">Active Projects</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">0.1s</div>
+                <div class="stat-label">Avg Response Time</div>
+            </div>
+        </div>
+        
+        <div class="button-group">
+            <button class="button">Start Free Trial</button>
+            <button class="button button-secondary">View Demo</button>
+        </div>
+    </div>
+</body>
+</html>

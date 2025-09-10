@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: #3498db;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .content {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .button {
+            background: #2ecc71;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        th {
+            background: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Test Application v1.0</h1>
+        <p>Simple page for visual regression testing</p>
+    </div>
+    
+    <div class="content">
+        <h2>Product List</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Widget A</td>
+                    <td>$19.99</td>
+                    <td>In Stock</td>
+                </tr>
+                <tr>
+                    <td>Widget B</td>
+                    <td>$29.99</td>
+                    <td>Low Stock</td>
+                </tr>
+                <tr>
+                    <td>Widget C</td>
+                    <td>$39.99</td>
+                    <td>Out of Stock</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <button class="button">Add to Cart</button>
+    </div>
+</body>
+</html>
