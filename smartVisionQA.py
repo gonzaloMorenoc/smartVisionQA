@@ -253,6 +253,10 @@ class SmartVisionQA:
         
         print(f"\nReporte JSON guardado en: {report_path}")
         print(f"Reporte HTML guardado en: {html_report_path}")
+        print(f"\nResultados disponibles para CI/CD:")
+        print(f"- JSON: {report_path.relative_to(Path.cwd())}")
+        print(f"- HTML: {html_report_path.relative_to(Path.cwd())}")
+        print(f"- Screenshots: {self.results_dir.name}/*_screenshot.png")
 
 
 async def main():
