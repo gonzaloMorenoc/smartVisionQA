@@ -17,6 +17,5 @@ ollama pull qwen2.5vl:7b
 echo "Ejecutando SmartVisionQA..."
 python3 smartVisionQA.py
 
-# Mantener contenedor activo para copiar resultados
+# Análisis completado, terminar contenedor
 echo "Análisis completado. Resultados en /app/results"
-wait $OLLAMA_PID
