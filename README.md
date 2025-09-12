@@ -1,120 +1,179 @@
 # SmartVisionQA
 
-Prueba de concepto para testing visual automatizado usando modelos de visión locales con Ollama.
+Proof of concept for automated visual testing using local vision models with Ollama.
 
-## Requisitos
+## Requirements
 
 - Python 3.8+
-- Ollama instalado y ejecutándose
-- Modelo de visión qwen2.5vl:7b descargado
+- Ollama installed and running
+- Vision model qwen2.5vl:7b downloaded
+- Docker (optional, for containerized execution)
 
-## Instalación
+## Installation
 
-1. Instalar Ollama:
+1. Install Ollama:
 ```bash
 curl -fsSL https://ollama.ai/install.sh | sh
 ```
 
-2. Descargar modelo de visión:
+2. Download vision model:
 ```bash
 ollama pull qwen2.5vl:7b
 ```
 
-3. Instalar dependencias Python:
+3. Install Python dependencies:
 ```bash
 pip install -r requirements.txt
 playwright install chromium
 ```
 
-## Estructura del Proyecto
+## Project Structure
 
 ```
 smartVisionQA/
-├── smartVisionQA.py            # Script principal
-├── generate_html_report.py     # Generador complejo (legacy)
-├── example_url_comparison.py   # Ejemplos de uso con URLs
-├── demo/                       # HTMLs de ejemplo
-│   ├── page_v1.html           # Versión 1 (original)
-│   ├── page_v2.html           # Versión 2 (cambios mayores)
-│   ├── page_v3.html           # Versión 3 (cambios menores)
-│   └── simple_test.html       # Página de prueba simple
-├── results/                    # Capturas y reportes (generado automáticamente)
-│   ├── comparison_*.json       # Reportes JSON por comparación
-│   ├── visual_report_*.html    # Reportes HTML visuales
-│   └── *_screenshot.png        # Capturas de pantalla
-└── requirements.txt            # Dependencias
+├── smartVisionQA.py            # Main script
+├── generate_html_report.py     # HTML report generator
+├── example_url_comparison.py   # URL comparison examples
+├── demo/                       # Example HTML files
+│   ├── page_v1.html           # Version 1 (original)
+│   ├── page_v2.html           # Version 2 (major changes)
+│   ├── page_v3.html           # Version 3 (minor changes)
+│   └── simple_test.html       # Simple test page
+├── results/                    # Screenshots and reports (auto-generated)
+│   ├── comparison_*.json       # JSON reports per comparison
+│   ├── visual_report_*.html    # Visual HTML reports
+│   └── *_screenshot.png        # Screenshots
+└── requirements.txt            # Dependencies
 ```
 
-## Uso
+## Usage
 
-Ejecutar todas las comparaciones:
+### Local Execution
+
+Run all comparisons:
 ```bash
 python smartVisionQA.py
 ```
 
-El script ejecuta automáticamente:
+The script automatically executes:
 - page_v1.html vs page_v2.html
 - page_v1.html vs page_v3.html  
 - page_v2.html vs page_v3.html
 
-Para cada comparación:
-1. Renderiza los HTMLs a imágenes
-2. Usa Ollama para analizar diferencias visuales
-3. Genera reporte JSON y HTML únicos
+For each comparison:
+1. Renders HTMLs to images
+2. Uses Ollama to analyze visual differences
+3. Generates unique JSON and HTML reports
 
-## Personalización
+### Docker Execution
 
-Para comparar otros HTMLs, modificar en `smartVisionQA.py`:
+Build and run with Docker:
+```bash
+docker build -t smartvisionqa .
+docker run --rm -v $(pwd)/results:/app/results smartvisionqa
+```
 
-**Aproximadamente línea 300** - Lista de casos de prueba:
+### GitHub Actions Pipeline
+
+The repository includes a GitHub Actions workflow for automated visual testing.
+
+#### Setup
+
+1. Enable GitHub Pages in repository settings
+2. Set Pages source to "GitHub Actions"
+3. Ensure Actions have write permissions for Pages
+
+#### Running the Pipeline
+
+1. Go to repository **Actions** tab
+2. Select **SmartVisionQA Analysis** workflow
+3. Click **Run workflow**
+4. Choose whether to publish results to GitHub Pages
+
+#### Pipeline Features
+
+- **Containerized execution**: Runs analysis in isolated Docker environment
+- **Artifact storage**: Results saved for 30 days as downloadable artifacts
+- **GitHub Pages publishing**: Optional web dashboard with visual reports
+- **Automatic cleanup**: Docker resources cleaned after execution
+
+#### Accessing Results
+
+**Via Artifacts:**
+- Go to workflow run page
+- Download `visual-qa-results` artifact
+- Contains all JSON reports, HTML dashboards, and screenshots
+
+**Via GitHub Pages (if enabled):**
+- Automatic deployment to `https://username.github.io/repository-name`
+- Interactive dashboard with all comparison results
+- Direct links to HTML reports and screenshots
+
+## Customization
+
+### Comparing Different HTML Files
+
+Modify in `smartVisionQA.py` at **line 300** - test cases list:
 ```python
 test_cases = [
-    ("tu_archivo1.html", "tu_archivo2.html"),
+    ("your_file1.html", "your_file2.html"),
 ]
 ```
 
-**Línea 59** - Cambiar modelo de Ollama:
+### Changing Ollama Model
+
+Modify in `smartVisionQA.py` at **line 59** - model initialization:
 ```python
 def __init__(self, model: str = "qwen2.5vl:7b"): 
 ```
 
-## Reportes HTML
+## HTML Reports
 
-El sistema genera automáticamente reportes HTML visuales:
+The system automatically generates visual HTML reports:
 
 ```bash
-python smartVisionQA.py  # Genera JSON + HTML automáticamente
+python smartVisionQA.py  # Generates JSON + HTML automatically
 ```
 
-Para generar solo reporte HTML desde JSON existente:
+To generate HTML report from existing JSON:
 ```bash
 python generate_simple_report.py results/comparison_page_v1_vs_page_v2.json
 ```
-![SmartQA Report](resources/img/VisualAnalysisResults.png)
 
-## Comparar URLs Reales
+## Real Website Comparison
 
-Para comparar sitios web reales:
+For comparing live websites:
 
 ```bash
 python example_url_comparison.py
 ```
 
-Puedes modificar las URLs en el archivo `example_url_comparison.py`.
+You can modify URLs in the `example_url_comparison.py` file.
 
-## Extensión
+## CI/CD Integration
 
-Para integrar con Selenium/Playwright para webs reales:
+### GitHub Actions
 
-**En la clase HTMLRenderer (línea 18)**, agregar método:
+The workflow provides CI/CD integration:
+- Triggered manually or via API
+- Results available as artifacts
+- Optional web publishing
+- No external dependencies required
+
+## Extension
+
+To integrate with Selenium/Playwright for live websites:
+
+**In HTMLRenderer class (line 18)**, add method:
 ```python
 async def url_to_image(self, url: str) -> bytes:
-    # Implementar captura de URL real
+    # Implement real URL capture
     pass
 ```
 
-## Notas
+## Notes
 
-- Requiere ~6GB para modelo qwen2.5vl:7b
-- Primera ejecución descarga modelo (~6GB)
-- Capturas guardadas en `results/`
+- Requires ~6GB for qwen2.5vl:7b model
+- First execution downloads model (~6GB)
+- Screenshots saved in `results/` directory
+- Docker execution recommended for consistent environments
