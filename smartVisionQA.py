@@ -165,7 +165,7 @@ class SmartVisionQA:
         self.demo_dir = demo_dir
         self.renderer = HTMLRenderer()
         self.analyzer = VisionAnalyzer()
-        self.results_dir = Path("results")
+        self.results_dir = Path("results").resolve()
         self.results_dir.mkdir(exist_ok=True)
     
     async def run_comparison(self, html1: str, html2: str) -> Dict:
