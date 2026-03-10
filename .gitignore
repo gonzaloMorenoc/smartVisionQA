@@ -1,3 +1,13 @@
 /results/
 .DS_Store
-__pycache__
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+.env
+.idea/
+.vscode/
+*.egg-info/
+dist/
+build/

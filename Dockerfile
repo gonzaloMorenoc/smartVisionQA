@@ -31,17 +31,24 @@ RUN pip3 install -r requirements.txt
 RUN playwright install-deps chromium
 RUN playwright install chromium
 
+# Crear usuario no-root y asignar permisos
+RUN useradd -m -s /bin/bash appuser && \
+    chown -R appuser:appuser /app
+
 # Copiar código fuente
-COPY . .
+COPY --chown=appuser:appuser . .
 
 # Crear directorio de resultados
-RUN mkdir -p results
+RUN mkdir -p results && chown appuser:appuser results
 
 # Script para inicializar Ollama y ejecutar análisis
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY --chown=appuser:appuser docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 EXPOSE 11434
+
+# Ejecutar como usuario no-root
+USER appuser
 
 # Punto de entrada
 ENTRYPOINT ["/docker-entrypoint.sh"]

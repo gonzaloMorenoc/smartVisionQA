@@ -5,10 +5,14 @@ Convierte reportes JSON en reportes HTML visuales
 """
 
 import json
+import logging
 import sys
 from datetime import datetime
+from html import escape
 from pathlib import Path
 from typing import Dict
+
+logger = logging.getLogger(__name__)
 
 
 class HTMLReportGenerator:
@@ -604,7 +608,7 @@ class HTMLReportGenerator:
             
             # Mostrar cada cambio individual
             for i, change in enumerate(category['changes'], 1):
-                change_text = change if isinstance(change, str) else str(change)
+                change_text = escape(change if isinstance(change, str) else str(change))
                 details_html += f"""
                     <li style="display: flex; align-items: start;">
                         <span style="color: #64748b; min-width: 25px; font-weight: 600;">{i}.</span>
@@ -677,7 +681,7 @@ class HTMLReportGenerator:
                     clean_line = clean_line[0].upper() + clean_line[1:]
                 
                 # No añadir si es una clave JSON
-                if not any(clean_line.lower().endswith('_changes') for _ in categories.keys()):
+                if not clean_line.lower().endswith('_changes'):
                     categories[best_match]['changes'].append(clean_line)
         
         # Contar cambios detectados
@@ -736,12 +740,12 @@ class HTMLReportGenerator:
         # Formatear el texto para mejor legibilidad
         formatted_lines = []
         for line in raw_text.split('\n'):
-            line = line.strip()
+            line = escape(line.strip())
             if line:
                 # Detectar y formatear secciones
                 if any(marker in line.upper() for marker in ['LAYOUT', 'TEXT', 'STYLE', 'ELEMENT']):
                     formatted_lines.append(f"<strong>{line}</strong>")
-                elif line.startswith('-') or line.startswith('•') or line.startswith('*'):
+                elif line.startswith('-') or line.startswith('&bull;') or line.startswith('*'):
                     formatted_lines.append(f"  {line}")
                 else:
                     formatted_lines.append(line)
@@ -887,21 +891,21 @@ def generate_from_json(json_path: Path, results_dir: Path = None) -> Path:
 def main():
     """Script principal para ejecutar desde línea de comandos"""
     if len(sys.argv) < 2:
-        print("Uso: python generate_html_report.py <comparison_report.json>")
-        print("Ejemplo: python generate_html_report.py results/comparison_report.json")
+        logger.error("Uso: python generate_html_report.py <comparison_report.json>")
+        logger.error("Ejemplo: python generate_html_report.py results/comparison_report.json")
         sys.exit(1)
     
     json_path = Path(sys.argv[1])
     
     if not json_path.exists():
-        print(f"Error: No se encontró {json_path}")
+        logger.error("Error: No se encontró %s", json_path)
         sys.exit(1)
     
     try:
         html_path = generate_from_json(json_path)
-        print(f"Reporte HTML generado: {html_path}")
+        logger.info("Reporte HTML generado: %s", html_path)
     except Exception as e:
-        print(f"Error generando reporte HTML: {e}")
+        logger.error("Error generando reporte HTML: %s", e, exc_info=True)
         sys.exit(1)
 
 
