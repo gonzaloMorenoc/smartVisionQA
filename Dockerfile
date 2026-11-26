@@ -1,47 +1,31 @@
-# Dockerfile para SmartVisionQA con Ollama
-FROM ubuntu:22.04
+# syntax=docker/dockerfile:1.7
+# Official Playwright image: browsers live in /ms-playwright (readable by the non-root
+# pwuser), so the old "browser installed for root, run as appuser" bug cannot happen.
+ARG PLAYWRIGHT_VERSION=1.65.2
+FROM mcr.microsoft.com/playwright/python:v${PLAYWRIGHT_VERSION}-noble
 
-# Evitar prompts interactivos
-ENV DEBIAN_FRONTEND=noninteractive
+ARG PLAYWRIGHT_VERSION
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_BREAK_SYSTEM_PACKAGES=1
 
-# Instalar dependencias del sistema
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    curl \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
-
-# Instalar Ollama
-RUN curl -fsSL https://ollama.ai/install.sh | sh
-
-# Cache del modelo
-ENV OLLAMA_MODELS=/app/models
-RUN mkdir -p /app/models
-VOLUME ["/app/models"]
-
-# Configurar directorio de trabajo
 WORKDIR /app
 
-# Copiar requirements y instalar dependencias Python
-COPY requirements.txt .
-RUN pip3 install -r requirements.txt
+COPY pyproject.toml README.md ./
+COPY src ./src
+# Pin Playwright to the image version so the bundled browsers always match.
+RUN pip install "playwright==${PLAYWRIGHT_VERSION}" . \
+    && smartvisionqa --version
 
-# Instalar Playwright con chromium
-RUN playwright install-deps chromium
-RUN playwright install chromium
+COPY demo ./demo
+COPY smartvisionqa.yaml ./
+# World-readable code/demo (host checkouts may be 0600) so any --user can run it.
+RUN mkdir -p /app/results && chown -R pwuser:pwuser /app && chmod -R a+rX /app
 
-# Copiar código fuente
-COPY . .
+USER pwuser
 
-# Crear directorio de resultados
-RUN mkdir -p results
-
-# Script para inicializar Ollama y ejecutar análisis
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
-EXPOSE 11434
-
-# Punto de entrada
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Exits with the run's code (0 pass, 1 regression, 2 error): no lingering processes.
+ENTRYPOINT ["smartvisionqa"]
+CMD ["run", "--config", "smartvisionqa.yaml"]

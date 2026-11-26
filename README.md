@@ -1,179 +1,140 @@
 # SmartVisionQA
 
-Proof of concept for automated visual testing using local vision models with Ollama.
+[![CI](https://github.com/gonzaloMorenoc/smartVisionQA/actions/workflows/ci.yml/badge.svg)](https://github.com/gonzaloMorenoc/smartVisionQA/actions/workflows/ci.yml)
+![coverage ≥ 80%](https://img.shields.io/badge/coverage-%E2%89%A580%25-brightgreen)
+![python](https://img.shields.io/badge/python-3.10%20%7C%203.12%20%7C%203.13-blue)
+![mypy strict](https://img.shields.io/badge/mypy-strict-informational)
 
-## Requirements
+**Hybrid visual regression testing**: a deterministic pixel diff decides *whether* a page
+changed, and a local vision model (via [Ollama](https://ollama.com)) explains *what* changed,
+region by region. No screenshots ever leave your machine.
 
-- Python 3.8+
-- Ollama installed and running
-- Vision model qwen2.5vl:7b downloaded
-- Docker (optional, for containerized execution)
-
-## Installation
-
-1. Install Ollama:
-```bash
-curl -fsSL https://ollama.ai/install.sh | sh
+```
+capture (Playwright) ──► pixel diff ──► changed regions ──► vision model (per region) ──► reports
+   deterministic          pass/fail       cropped pairs       structured JSON           HTML · JUnit · MD
 ```
 
-2. Download vision model:
+## Why hybrid?
+
+A vision model on its own is a poor test oracle: it is non-deterministic, it hallucinates
+differences on identical pages and misses real ones. SmartVisionQA never lets the model
+decide pass/fail:
+
+| Concern | How it is handled |
+| --- | --- |
+| Is there a regression? | Pixel diff with colour threshold, noise filter and tolerance ratio. Identical pages never reach the model. |
+| Where? | Changed pixels are clustered into regions (bounding boxes). |
+| What changed? | Each region is cropped from *before* and *after* and sent as two separate images. The model answers with a strict JSON schema (Ollama structured outputs), `temperature: 0` and a fixed `seed`. |
+| Bad model output | Schema validation, retries, and a filter that drops "changes" that say nothing changed (e.g. *"V1 has 98%, V2 has 98%"*). |
+| Model offline | Run continues with pixel results; the report says the AI was unavailable. |
+| Broken pages | HTTP 4xx/5xx responses fail the check instead of being captured or baselined. |
+| Stale or leaked data | Each check clears its previous artifacts; URL credentials and query strings never appear in reports. |
+| How good is the model? | `smartvisionqa evaluate` applies known mutations and reports detection recall, false-positive rate and per-category precision/recall/F1. |
+
+## Quick start
+
 ```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+python -m playwright install chromium
+
+# Pixel-only (no AI needed)
+smartvisionqa compare demo/page_v1.html demo/page_v3.html --no-ai
+
+# With explanations (needs Ollama running)
 ollama pull qwen2.5vl:7b
+smartvisionqa compare demo/page_v1.html https://example.com --viewport 390x844 --viewport 1280x800
 ```
 
-3. Install Python dependencies:
-```bash
-pip install -r requirements.txt
-playwright install chromium
-```
+Open `results/index.html` for the dashboard. Every comparison gets its own folder with
+`before.png`, `after.png`, `diff.png`, `result.json` and `report.html`.
 
-## Project Structure
+![Comparison report](resources/img/report.png)
 
-```
-smartVisionQA/
-├── smartVisionQA.py            # Main script
-├── generate_html_report.py     # HTML report generator
-├── example_url_comparison.py   # URL comparison examples
-├── demo/                       # Example HTML files
-│   ├── page_v1.html           # Version 1 (original)
-│   ├── page_v2.html           # Version 2 (major changes)
-│   ├── page_v3.html           # Version 3 (minor changes)
-│   └── simple_test.html       # Simple test page
-├── results/                    # Screenshots and reports (auto-generated)
-│   ├── comparison_*.json       # JSON reports per comparison
-│   ├── visual_report_*.html    # Visual HTML reports
-│   └── *_screenshot.png        # Screenshots
-└── requirements.txt            # Dependencies
-```
+## Commands
 
-## Usage
+| Command | What it does |
+| --- | --- |
+| `smartvisionqa run --config smartvisionqa.yaml` | Runs every `page` (vs. its baseline) and `comparison` (before vs. after) in the config, for every viewport. |
+| `smartvisionqa run --update-baselines` | Approves the current screenshots as the new baselines. |
+| `smartvisionqa compare BEFORE AFTER` | Ad-hoc comparison of two files or URLs (`--viewport`, `--mask`, `--name`). |
+| `smartvisionqa evaluate` | Scores the pipeline and the model on 10 controlled mutations (+1 control) of `--target` (default `demo/page_v1.html`). Gates: `--min-detection` (default 1.0), `--max-fpr` (0.0), `--min-f1` (0.0). Writes `evaluation.json` and `evaluation.md`. |
 
-### Local Execution
+Common flags: `--no-ai`, `--model`, `--output`, `--config`, `--log-level` (accepted before or
+after the command). Without `--config`, `./smartvisionqa.yaml` is used for settings when present;
+`compare` resolves its targets against the current directory.
 
-Run all comparisons:
-```bash
-python smartVisionQA.py
-```
+**Exit codes** — `0` all checks passed · `1` visual regression, missing baseline or evaluation
+threshold missed · `2` configuration, capture or runtime error, or any model error during
+`evaluate`. An unexpected crash is always `2`, never `1`. Use them directly as a CI gate.
 
-The script automatically executes:
-- page_v1.html vs page_v2.html
-- page_v1.html vs page_v3.html  
-- page_v2.html vs page_v3.html
+### Environment variables
 
-For each comparison:
-1. Renders HTMLs to images
-2. Uses Ollama to analyze visual differences
-3. Generates unique JSON and HTML reports
+| Variable | Effect |
+| --- | --- |
+| `SVQA_MODEL` | Default Ollama model (`--model` wins over it, and it wins over the config). |
+| `OLLAMA_HOST` | Ollama server URL when `ai.host` is not set (default `http://localhost:11434`). |
+| `GITHUB_STEP_SUMMARY` | When set (GitHub Actions), the Markdown summary is appended to it. |
 
-### Docker Execution
-
-Build and run with Docker:
-```bash
-docker build -t smartvisionqa .
-docker run --rm -v $(pwd)/results:/app/results smartvisionqa
-```
-
-### GitHub Actions Pipeline
-
-The repository includes a GitHub Actions workflow for automated visual testing.
-
-#### Setup
-
-1. Enable GitHub Pages in repository settings
-2. Set Pages source to "GitHub Actions"
-3. Ensure Actions have write permissions for Pages
-
-#### Running the Pipeline
-
-1. Go to repository **Actions** tab
-2. Select **SmartVisionQA Analysis** workflow
-3. Click **Run workflow**
-4. Choose whether to publish results to GitHub Pages
-
-#### Pipeline Features
-
-- **Containerized execution**: Runs analysis in isolated Docker environment
-- **Artifact storage**: Results saved for 30 days as downloadable artifacts
-- **GitHub Pages publishing**: Optional web dashboard with visual reports
-- **Automatic cleanup**: Docker resources cleaned after execution
-
-#### Accessing Results
-
-**Via Artifacts:**
-- Go to workflow run page
-- Download `visual-qa-results` artifact
-- Contains all JSON reports, HTML dashboards, and screenshots
-
-**Via GitHub Pages (if enabled):**
-- Automatic deployment to `https://username.github.io/repository-name`
-- Interactive dashboard with all comparison results
-- Direct links to HTML reports and screenshots
-
-## Customization
-
-### Comparing Different HTML Files
-
-Modify in `smartVisionQA.py` at **line 300** - test cases list:
-```python
-test_cases = [
-    ("your_file1.html", "your_file2.html"),
-]
-```
-
-### Changing Ollama Model
-
-Modify in `smartVisionQA.py` at **line 59** - model initialization:
-```python
-def __init__(self, model: str = "qwen2.5vl:7b"): 
-```
-
-## HTML Reports
-
-The system automatically generates visual HTML reports:
+## Baseline workflow (golden images)
 
 ```bash
-python smartVisionQA.py  # Generates JSON + HTML automatically
+smartvisionqa run --config examples/baseline-mode.yaml                     # 1st run: missing baseline → exit 1
+smartvisionqa run --config examples/baseline-mode.yaml --update-baselines  # review & approve
+git add baselines/ && git commit -m "test: approve visual baselines"
+smartvisionqa run --config examples/baseline-mode.yaml                     # later runs: 0 or 1
 ```
 
-To generate HTML report from existing JSON:
+Generate baselines in the same environment that runs CI (Docker or the CI runner): font
+rendering differs between operating systems.
+
+## Configuration
+
+See [`smartvisionqa.yaml`](smartvisionqa.yaml) (demo) and
+[docs/configuration.md](docs/configuration.md) for every option: viewports, masks, waits,
+diff thresholds and model settings. The config is validated on load and unknown keys are
+rejected with a clear message.
+
+## Reports
+
+- `results/index.html` – dashboard of all checks.
+- `results/**/report.html` – screenshots, diff overlay and explained changes per region
+  (rendered with Jinja2 autoescape and a strict Content-Security-Policy).
+- `results/junit.xml` – test results for any CI.
+- `results/summary.md` – Markdown table; automatically appended to the GitHub job summary.
+- `results/summary.json` – machine-readable results.
+
+## Docker
+
 ```bash
-python generate_simple_report.py results/comparison_page_v1_vs_page_v2.json
+mkdir -p results baselines && export SVQA_UID=$(id -u) SVQA_GID=$(id -g)
+docker compose run --rm smartvisionqa                                      # demo with Ollama service
+docker compose run --rm --no-deps smartvisionqa \
+  compare demo/page_v1.html demo/page_v2.html --no-ai                      # pixel-only, no model download
+SVQA_MODEL=qwen2.5vl:3b docker compose run --rm smartvisionqa              # smaller model
 ```
 
-## Real Website Comparison
+The image is based on the official Playwright image, runs as a non-root user and exits with
+the run's exit code. Compose runs it as your user (`SVQA_UID`/`SVQA_GID`) so the mounted
+`./results` and `./baselines` stay writable, and passes `SVQA_MODEL` to every command. Use
+`--no-deps` for pixel-only runs so the Ollama model is not pulled.
 
-For comparing live websites:
+## CI/CD
+
+- **`ci.yml`** (every push / PR): ruff, mypy `--strict`, bandit, pip-audit, tests on
+  Python 3.10/3.12/3.13 with a real Chromium and an 80 % coverage gate, pixel-engine
+  evaluation (100 % detection, 0 false positives), hadolint, actionlint and a Docker smoke test.
+- **`visual-qa.yml`** (manual / weekly): runs the demo with a real model, evaluates the model
+  and publishes the reports to GitHub Pages.
+
+## Development
 
 ```bash
-python example_url_comparison.py
+pip install -e ".[dev]" && pre-commit install
+pytest                          # unit + integration (real Chromium) + e2e, 80 % coverage gate
+pytest -m ai --no-cov           # live model test (needs Ollama; SVQA_MODEL picks the model)
+ruff check src tests && ruff format --check src tests && mypy
 ```
 
-You can modify URLs in the `example_url_comparison.py` file.
-
-## CI/CD Integration
-
-### GitHub Actions
-
-The workflow provides CI/CD integration:
-- Triggered manually or via API
-- Results available as artifacts
-- Optional web publishing
-- No external dependencies required
-
-## Extension
-
-To integrate with Selenium/Playwright for live websites:
-
-**In HTMLRenderer class (line 18)**, add method:
-```python
-async def url_to_image(self, url: str) -> bytes:
-    # Implement real URL capture
-    pass
-```
-
-## Notes
-
-- Requires ~6GB for qwen2.5vl:7b model
-- First execution downloads model (~6GB)
-- Screenshots saved in `results/` directory
-- Docker execution recommended for consistent environments
+Architecture notes: [docs/architecture.md](docs/architecture.md) ·
+Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · Changes: [CHANGELOG.md](CHANGELOG.md)

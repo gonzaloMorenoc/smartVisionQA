@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'">
+<title>SmartVisionQA results</title>
+<style>
+{% include "_styles.css.j2" %}
+.table-wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>SmartVisionQA results</h1>
+  <p class="muted">Run started {{ summary.started_at }} · {{ "%.1f" | format(summary.duration_s) }} s · exit code {{ summary.exit_code }}</p>
+  <div class="metrics">
+    <div class="card metric"><b>{{ summary.outcomes | length }}</b><span>Checks</span></div>
+    {% for verdict, label in verdict_label.items() %}
+      {% if summary.counts[verdict.value] %}
+      <div class="card metric"><b>{{ verdict_icon[verdict] }} {{ summary.counts[verdict.value] }}</b><span>{{ label }}</span></div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <h2>Checks</h2>
+  {% if rows %}
+  <div class="card table-wrap">
+  <table>
+    <thead><tr><th>Status</th><th>Name</th><th>Viewport</th><th>Changed</th><th>Severity</th><th>Summary</th></tr></thead>
+    <tbody>
+    {% for outcome, href in rows %}
+      <tr>
+        <td><span class="badge v-{{ outcome.verdict.value }}">{{ verdict_icon[outcome.verdict] }} {{ verdict_label[outcome.verdict] }}</span></td>
+        <td><a href="{{ href }}">{{ outcome.name }}</a></td>
+        <td>{{ outcome.viewport }}</td>
+        <td>{{ outcome.diff.diff_ratio | percent if outcome.diff else "—" }}</td>
+        <td>{% if outcome.severity %}<span class="badge s-{{ outcome.severity.value }}">{{ outcome.severity.value }}</span>{% else %}—{% endif %}</td>
+        <td>{{ headline(outcome) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <div class="card muted">No checks configured. Add <code>pages</code> or <code>comparisons</code> to your config.</div>
+  {% endif %}
+  <p class="footer">SmartVisionQA {{ version }} · generated {{ generated_at }}</p>
+</main>
+</body>
+</html>

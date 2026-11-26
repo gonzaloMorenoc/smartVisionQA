@@ -1,0 +1,36 @@
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --text: #18202b; --muted: #5b6676; --border: #e2e6ec;
+  --ok: #157f3b; --ok-bg: #e7f6ec; --bad: #b42318; --bad-bg: #fdecea; --warn: #9a5b00;
+  --warn-bg: #fff4e0; --info: #1d4ed8; --info-bg: #e8efff; --accent: #4f46e5;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1318; --surface: #171c23; --text: #e6e9ee; --muted: #9aa4b2; --border: #2a313b;
+    --ok: #4ade80; --ok-bg: #12301d; --bad: #f87171; --bad-bg: #3a1714; --warn: #fbbf24;
+    --warn-bg: #3a2a0a; --info: #93b4ff; --info-bg: #17223d; --accent: #a5b4fc;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 1440px; margin: 0 auto; padding: 24px 16px 48px; }
+a { color: var(--accent); }
+h1 { font-size: 1.6rem; margin: 0 0 4px; }
+h2 { font-size: 1.15rem; margin: 28px 0 12px; }
+.muted { color: var(--muted); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 600; }
+.v-passed, .v-baseline_updated { color: var(--ok); background: var(--ok-bg); }
+.v-failed, .v-missing_baseline { color: var(--bad); background: var(--bad-bg); }
+.v-error { color: var(--warn); background: var(--warn-bg); }
+.s-high { color: var(--bad); background: var(--bad-bg); }
+.s-medium { color: var(--warn); background: var(--warn-bg); }
+.s-low, .chip { color: var(--info); background: var(--info-bg); }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
+.metric b { display: block; font-size: 1.3rem; }
+.metric span { color: var(--muted); font-size: .85rem; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: .85rem; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; overflow-wrap: anywhere; }
+.footer { margin-top: 32px; color: var(--muted); font-size: .85rem; text-align: center; }

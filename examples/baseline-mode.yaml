@@ -1,0 +1,19 @@
+# Baseline (golden image) mode: every run compares the live page with the last approved
+# screenshot. First run fails with "missing baseline"; approve with --update-baselines and
+# commit the baselines/ folder. Generate baselines in the same environment as CI (Docker or
+# the CI runner) because font rendering differs between operating systems.
+
+viewports:
+  - { name: desktop, width: 1280, height: 800 }
+  - { name: mobile, width: 390, height: 844 }
+
+capture:
+  wait_for_selector: "h1"
+  mask: [".live-clock"]
+
+pages:
+  - { name: home, target: ../demo/page_v1.html }
+  - { name: pricing, target: "http://localhost:3000/pricing", viewports: [desktop] }
+
+baseline_dir: ../baselines
+output_dir: ../results

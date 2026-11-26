@@ -1,0 +1,31 @@
+# SmartVisionQA demo configuration. Paths are relative to this file.
+# Full reference: docs/configuration.md
+
+viewports:
+  - { name: desktop, width: 1280, height: 800 }
+  - { name: mobile, width: 390, height: 844, device_scale_factor: 2 }
+
+capture:
+  full_page: true
+  disable_animations: true
+  # mask: [".live-clock", ".ads"]   # CSS selectors painted out in every capture
+
+diff:
+  pixel_threshold: 0.1   # per-pixel colour distance (0-1) that counts as "changed"
+  max_diff_ratio: 0.0    # share of changed pixels tolerated before failing
+  min_region_area: 1     # raise (e.g. 16) only if your pages render with anti-aliasing noise
+
+ai:
+  enabled: true
+  model: qwen2.5vl:7b
+  temperature: 0
+  seed: 42
+  max_regions: 6
+
+# Direct before/after comparisons (the demo pages are intentionally different).
+comparisons:
+  - { name: v1-vs-v2, before: demo/page_v1.html, after: demo/page_v2.html }
+  - { name: v1-vs-v3, before: demo/page_v1.html, after: demo/page_v3.html }
+  - { name: v2-vs-v3, before: demo/page_v2.html, after: demo/page_v3.html }
+
+output_dir: results
