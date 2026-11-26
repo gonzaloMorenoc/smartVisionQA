@@ -1,3 +1,5 @@
+> **Nota (2026-11-26):** auditoría histórica del código anterior a la versión 1.0. Los problemas descritos se resolvieron en la reescritura; ver `CHANGELOG.md`.
+
 # SmartVisionQA - Informe de Auditoría Completa
 
 **Fecha:** 2026-03-10
