@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'">
+<title>{{ outcome.test_id }} · SmartVisionQA</title>
+<style>
+{% include "_styles.css.j2" %}
+.shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.shots figure { margin: 0; }
+.shots figcaption { font-weight: 600; margin-bottom: 6px; }
+.shots img { width: 100%; height: auto; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+.finding { margin-bottom: 12px; }
+.change { padding: 10px 0; border-top: 1px solid var(--border); }
+.change:first-of-type { border-top: 0; }
+.delta { margin-top: 4px; font-size: .9rem; color: var(--muted); }
+.error { border-color: var(--warn); background: var(--warn-bg); }
+</style>
+</head>
+<body>
+<main>
+  <p><a href="{{ index_href }}">← All results</a></p>
+  <div class="card">
+    <h1>{{ outcome.name }} <span class="muted">@ {{ outcome.viewport }}</span>
+      <span class="badge v-{{ outcome.verdict.value }}">{{ verdict_icon[outcome.verdict] }} {{ verdict_label[outcome.verdict] }}</span></h1>
+    <div class="muted"><code>{{ outcome.before_label }}</code> → <code>{{ outcome.after_label }}</code></div>
+    <div class="metrics">
+      <div class="metric"><b>{{ outcome.diff.diff_ratio | percent if outcome.diff else "—" }}</b><span>Pixels changed</span></div>
+      <div class="metric"><b>{{ outcome.diff.regions | length if outcome.diff else "—" }}</b><span>Changed regions</span></div>
+      <div class="metric"><b>{{ outcome.severity.value if outcome.severity else "—" }}</b><span>Severity</span></div>
+      <div class="metric"><b>{{ outcome.changes | length }}</b><span>Explained changes</span></div>
+      <div class="metric"><b>{{ "%.1f" | format(outcome.duration_s) }} s</b><span>Duration</span></div>
+    </div>
+    <p class="muted">AI explanations: {{ outcome.ai_status }}</p>
+  </div>
+
+  {% if outcome.error %}
+  <h2>Problem</h2>
+  <div class="card error">{{ outcome.error }}</div>
+  {% endif %}
+
+  {% if images["before.png"] or images["after.png"] %}
+  <h2>Screenshots</h2>
+  <div class="shots">
+    {% for name, caption in [("before.png", "Before"), ("after.png", "After"), ("diff.png", "Diff (changed pixels in red)")] %}
+      {% if images[name] %}
+      <figure><figcaption>{{ caption }}</figcaption><a href="{{ name }}"><img src="{{ name }}" alt="{{ caption }} screenshot" loading="lazy"></a></figure>
+      {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if outcome.findings %}
+  <h2>What changed</h2>
+  {% for finding in outcome.findings %}
+  <div class="card finding">
+    <div class="muted">Region x={{ finding.region.x }}, y={{ finding.region.y }} · {{ finding.region.width }}×{{ finding.region.height }} px</div>
+    {% if finding.error %}<p>⚠️ {{ finding.error }}</p>{% endif %}
+    {% if not finding.changes and not finding.error %}<p class="muted">The model saw no meaningful change in this region (pixel diff still flags it).</p>{% endif %}
+    {% for change in finding.changes %}
+    <div class="change">
+      <span class="badge chip">{{ change.category.value }}</span>
+      <span class="badge s-{{ change.severity.value }}">{{ change.severity.value }}</span>
+      <span class="muted">confidence {{ "%.0f" | format(change.confidence * 100) }}%</span>
+      <div>{{ change.description }}</div>
+      {% if change.before or change.after %}<div class="delta"><code>{{ change.before or "∅" }}</code> → <code>{{ change.after or "∅" }}</code></div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  {% endif %}
+
+  <p class="footer">SmartVisionQA {{ version }} · generated {{ generated_at }}</p>
+</main>
+</body>
+</html>
