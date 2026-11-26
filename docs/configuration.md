@@ -52,6 +52,14 @@ baseline_dir: baselines
 output_dir: results
 ```
 
+## Environment variables
+
+| Variable | Effect |
+| --- | --- |
+| `SVQA_MODEL` | Model used when `--model` is not given (overrides `ai.model`). |
+| `OLLAMA_HOST` | Ollama URL when `ai.host` is null. |
+| `GITHUB_STEP_SUMMARY` | Markdown summaries are appended to this file when set. |
+
 ## Choosing a model
 
 Run `smartvisionqa evaluate --model <name>` for each candidate and compare category

@@ -37,7 +37,22 @@ src/smartvisionqa/
 5. **Measured AI.** `evaluate` turns "this model seems better" into numbers that CI can track.
 6. **Determinism of captures.** Fixed viewport and device scale factor, `reduced_motion`,
    frozen CSS animations/transitions, hidden caret, `document.fonts.ready`, fixed locale and
-   timezone, and CSS-selector masks for dynamic content.
+   timezone, and CSS-selector masks for dynamic content. The browser context bypasses the
+   page's CSP so the freeze stylesheet also works on strict-CSP sites.
+7. **Never trust a broken page.** A URL answering HTTP 4xx/5xx (or no response) is a capture
+   error, so error pages can never become baselines or "pass" against each other.
+8. **No stale or leaked data.** Each check deletes its previous artifacts before running;
+   full-page diff masks are dropped once the diff image is rendered; report labels strip
+   `user:password@`, query strings and fragments from URLs.
+9. **Fail loud, with the right code.** Any unexpected exception exits with `2` (error), so a
+   crash can never be mistaken for `1` (regression) by CI.
+
+## Known limitations
+
+- A layout shift near the top (e.g. a new banner) moves everything below it, so the diff
+  reports one very large region; the model then sees a downscaled crop. DOM-aware alignment
+  would be the next step.
+- Baselines are environment-specific (fonts, GPU-less rendering): create them where CI runs.
 
 ## Verdicts
 

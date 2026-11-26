@@ -27,6 +27,8 @@ decide pass/fail:
 | What changed? | Each region is cropped from *before* and *after* and sent as two separate images. The model answers with a strict JSON schema (Ollama structured outputs), `temperature: 0` and a fixed `seed`. |
 | Bad model output | Schema validation, retries, and a filter that drops "changes" that say nothing changed (e.g. *"V1 has 98%, V2 has 98%"*). |
 | Model offline | Run continues with pixel results; the report says the AI was unavailable. |
+| Broken pages | HTTP 4xx/5xx responses fail the check instead of being captured or baselined. |
+| Stale or leaked data | Each check clears its previous artifacts; URL credentials and query strings never appear in reports. |
 | How good is the model? | `smartvisionqa evaluate` applies known mutations and reports detection recall, false-positive rate and per-category precision/recall/F1. |
 
 ## Quick start
@@ -56,13 +58,23 @@ Open `results/index.html` for the dashboard. Every comparison gets its own folde
 | `smartvisionqa run --config smartvisionqa.yaml` | Runs every `page` (vs. its baseline) and `comparison` (before vs. after) in the config, for every viewport. |
 | `smartvisionqa run --update-baselines` | Approves the current screenshots as the new baselines. |
 | `smartvisionqa compare BEFORE AFTER` | Ad-hoc comparison of two files or URLs (`--viewport`, `--mask`, `--name`). |
-| `smartvisionqa evaluate` | Scores the pipeline and the model on controlled mutations of `demo/page_v1.html`. |
+| `smartvisionqa evaluate` | Scores the pipeline and the model on 10 controlled mutations (+1 control) of `--target` (default `demo/page_v1.html`). Gates: `--min-detection` (default 1.0), `--max-fpr` (0.0), `--min-f1` (0.0). Writes `evaluation.json` and `evaluation.md`. |
 
-Common flags: `--no-ai`, `--model` (or `$SVQA_MODEL`), `--output`, `--config`, `--log-level`.
-Without `--config`, `./smartvisionqa.yaml` is used for settings when present.
+Common flags: `--no-ai`, `--model`, `--output`, `--config`, `--log-level` (accepted before or
+after the command). Without `--config`, `./smartvisionqa.yaml` is used for settings when present;
+`compare` resolves its targets against the current directory.
 
 **Exit codes** — `0` all checks passed · `1` visual regression, missing baseline or evaluation
-threshold missed · `2` configuration, capture or runtime error. Use them directly as a CI gate.
+threshold missed · `2` configuration, capture or runtime error, or any model error during
+`evaluate`. An unexpected crash is always `2`, never `1`. Use them directly as a CI gate.
+
+### Environment variables
+
+| Variable | Effect |
+| --- | --- |
+| `SVQA_MODEL` | Default Ollama model (`--model` wins over it, and it wins over the config). |
+| `OLLAMA_HOST` | Ollama server URL when `ai.host` is not set (default `http://localhost:11434`). |
+| `GITHUB_STEP_SUMMARY` | When set (GitHub Actions), the Markdown summary is appended to it. |
 
 ## Baseline workflow (golden images)
 
@@ -95,13 +107,17 @@ rejected with a clear message.
 ## Docker
 
 ```bash
-docker compose run --rm --user "$(id -u):$(id -g)" smartvisionqa            # demo with Ollama service
-docker compose run --rm smartvisionqa compare demo/page_v1.html demo/page_v2.html --no-ai
-SVQA_MODEL=qwen2.5vl:3b docker compose run --rm smartvisionqa               # smaller model
+mkdir -p results baselines && export SVQA_UID=$(id -u) SVQA_GID=$(id -g)
+docker compose run --rm smartvisionqa                                      # demo with Ollama service
+docker compose run --rm --no-deps smartvisionqa \
+  compare demo/page_v1.html demo/page_v2.html --no-ai                      # pixel-only, no model download
+SVQA_MODEL=qwen2.5vl:3b docker compose run --rm smartvisionqa              # smaller model
 ```
 
 The image is based on the official Playwright image, runs as a non-root user and exits with
-the run's exit code.
+the run's exit code. Compose runs it as your user (`SVQA_UID`/`SVQA_GID`) so the mounted
+`./results` and `./baselines` stay writable, and passes `SVQA_MODEL` to every command. Use
+`--no-deps` for pixel-only runs so the Ollama model is not pulled.
 
 ## CI/CD
 
@@ -115,14 +131,10 @@ the run's exit code.
 
 ```bash
 pip install -e ".[dev]" && pre-commit install
-pytest                 # unit + integration (real Chromium) + e2e, coverage gate
-pytest -m ai           # also talk to a running Ollama server
+pytest                          # unit + integration (real Chromium) + e2e, 80 % coverage gate
+pytest -m ai --no-cov           # live model test (needs Ollama; SVQA_MODEL picks the model)
 ruff check src tests && ruff format --check src tests && mypy
 ```
 
 Architecture notes: [docs/architecture.md](docs/architecture.md) ·
 Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · Changes: [CHANGELOG.md](CHANGELOG.md)
-
-## License
-
-MIT

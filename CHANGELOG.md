@@ -22,6 +22,12 @@ Complete rewrite as a tested Python package with a hybrid (pixel + AI) engine.
 - (review) Stale screenshots are removed before each check; credentials/query strings are
   redacted from labels; XML-invalid characters and Markdown links are neutralised in reports.
 
+- (PR review) A malformed URL (bad port, broken IPv6) now fails only its own check; default
+  `compare` names never contain query strings; Chromium context errors are always contained;
+  `evaluate` honours `capture.mask`; full screenshots are decoded once per AI analysis;
+  Compose runs as the host user (image files are world-readable even from 0600 checkouts);
+  Pages still publishes when the evaluation step fails.
+
 ### Added
 - Deterministic pixel diff with region clustering as the pass/fail oracle.
 - Per-region AI explanations with Ollama structured outputs, temperature 0, seed, retries.
@@ -29,7 +35,7 @@ Complete rewrite as a tested Python package with a hybrid (pixel + AI) engine.
 - YAML config validated by pydantic; `run`, `compare`, `evaluate` commands; exit codes.
 - Reports: HTML (Jinja2 autoescape + CSP), index, JUnit XML, Markdown job summary, JSON.
 - Evaluation suite with controlled mutations and precision/recall/F1 metrics.
-- 150+ tests (unit, property-based, browser integration, e2e) with an 80 % coverage gate.
+- 170+ tests (unit, property-based, browser integration, e2e) with an 80 % coverage gate.
 - CI: ruff, mypy strict, bandit, pip-audit, hadolint, actionlint, Docker smoke test,
   Python 3.10–3.13 matrix; Dependabot; pre-commit.
 - Docker image on the official Playwright base, non-root; docker compose with Ollama service.

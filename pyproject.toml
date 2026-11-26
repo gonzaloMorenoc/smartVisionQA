@@ -8,7 +8,6 @@ version = "1.0.0"
 description = "Hybrid visual regression testing: deterministic pixel diff + local vision-model explanations via Ollama."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
 authors = [{ name = "Gonzalo Moreno" }]
 keywords = ["qa", "visual-regression", "testing", "playwright", "ollama", "vision"]
 classifiers = [
