@@ -1,0 +1,101 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, types & security
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: pip install -e ".[dev]"
+      - name: Ruff lint
+        run: ruff check src tests
+      - name: Ruff format
+        run: ruff format --check src tests
+      - name: Mypy (strict)
+        run: mypy
+      - name: Bandit
+        run: bandit -q -c pyproject.toml -r src
+      - name: Dependency audit
+        run: pip-audit --skip-editable
+
+  test:
+    name: Tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - run: pip install -e ".[dev]"
+      - run: python -m playwright install --with-deps chromium
+      - name: Unit + integration + e2e tests (coverage gate 80%)
+        run: pytest --cov-report=xml --junitxml=junit.xml
+      - name: Pixel-engine evaluation (must detect 100% of mutations, 0 false positives)
+        if: matrix.python == '3.12'
+        run: smartvisionqa evaluate --no-ai --target demo/page_v1.html --output eval
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: test-results-${{ matrix.python }}
+          path: |
+            junit.xml
+            coverage.xml
+            eval/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  infra:
+    name: Dockerfile & workflow lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: warning
+      - name: actionlint
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
+
+  docker:
+    name: Docker image builds and runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [quality]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker build -t smartvisionqa:ci .
+      - name: Pixel-only comparison inside the container (non-root)
+        run: |
+          set +e
+          docker run --rm smartvisionqa:ci compare demo/page_v1.html demo/page_v1.html --no-ai
+          same=$?
+          docker run --rm smartvisionqa:ci compare demo/page_v1.html demo/page_v2.html --no-ai
+          changed=$?
+          echo "identical exit=$same, changed exit=$changed"
+          test "$same" -eq 0 && test "$changed" -eq 1
