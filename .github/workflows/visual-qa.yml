@@ -58,6 +58,7 @@ jobs:
           # The demo pages differ on purpose: 1 (regressions) is expected, 2 is a real error.
           test "$code" -ne 2
       - name: Evaluate the model on known mutations
+        id: evaluate
         run: smartvisionqa evaluate --model "$SVQA_MODEL" --output results/evaluation
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -65,14 +66,15 @@ jobs:
           name: visual-qa-results
           path: results/
           retention-days: 30
+      # Publish whatever was produced even if the evaluation step failed (the job still fails).
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        if: github.event_name == 'schedule' || inputs.publish_results
+        if: ${{ !cancelled() && (github.event_name == 'schedule' || inputs.publish_results) }}
         with:
           path: results/
 
   deploy:
     needs: analyse
-    if: github.event_name == 'schedule' || inputs.publish_results
+    if: ${{ !cancelled() && (github.event_name == 'schedule' || inputs.publish_results) }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

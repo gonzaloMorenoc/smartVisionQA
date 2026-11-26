@@ -34,7 +34,7 @@ from smartvisionqa.evaluation.runner import (
 from smartvisionqa.report import write_reports
 from smartvisionqa.report.markdown import render_markdown
 from smartvisionqa.runner import EXIT_ERROR, EXIT_OK, EXIT_REGRESSION, Runner, RunSummary
-from smartvisionqa.targets import TargetError, resolve_target
+from smartvisionqa.targets import TargetError, display_label, resolve_target
 
 logger = logging.getLogger("smartvisionqa")
 
@@ -173,7 +173,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
 def _cmd_compare(args: argparse.Namespace) -> int:
     config = _load(args, required=False)
     viewports: list[Viewport] = [parse_viewport(v) for v in args.viewport] or list(config.viewports)
-    name = args.name or f"{Path(args.before).name} vs {Path(args.after).name}"
+    name = args.name or f"{_short_name(args.before)} vs {_short_name(args.after)}"
     comparison = {
         "name": name,
         "before": _from_cwd(args.before),
@@ -188,6 +188,13 @@ def _cmd_compare(args: argparse.Namespace) -> int:
         comparisons=[comparison],
     )
     return _execute(config, update_baselines=False, link_base=args.link_base)
+
+
+def _short_name(raw: str) -> str:
+    """Readable default name without credentials, query strings or fragments."""
+    label = display_label(raw).removesuffix("?…").rstrip("/")
+    tail = label.rsplit("/", 1)[-1]
+    return tail or label or "target"
 
 
 def _from_cwd(raw: str) -> str:
@@ -209,6 +216,7 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
             viewport,
             config.diff,
             model=config.ai.model,
+            mask=config.capture.mask,
         )
     output = config.resolved_output_dir
     output.mkdir(parents=True, exist_ok=True)

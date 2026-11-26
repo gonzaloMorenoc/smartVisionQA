@@ -21,7 +21,8 @@ RUN pip install "playwright==${PLAYWRIGHT_VERSION}" . \
 
 COPY demo ./demo
 COPY smartvisionqa.yaml ./
-RUN mkdir -p /app/results && chown -R pwuser:pwuser /app
+# World-readable code/demo (host checkouts may be 0600) so any --user can run it.
+RUN mkdir -p /app/results && chown -R pwuser:pwuser /app && chmod -R a+rX /app
 
 USER pwuser
 

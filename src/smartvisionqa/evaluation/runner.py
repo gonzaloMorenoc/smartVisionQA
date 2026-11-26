@@ -50,14 +50,15 @@ def run_evaluation(
     diff_settings: DiffSettings,
     mutations: Sequence[Mutation] = DEFAULT_MUTATIONS,
     model: str | None = None,
+    mask: tuple[str, ...] = (),
 ) -> EvaluationReport:
     if analyzer is not None:
         problem = analyzer.check_available()
         if problem:
             raise EvaluationError(problem)
-    baseline = capturer.capture(CaptureRequest(target=target, viewport=viewport))
+    baseline = capturer.capture(CaptureRequest(target=target, viewport=viewport, mask=mask))
     cases = tuple(
-        _run_case(target, capturer, analyzer, viewport, diff_settings, baseline, mutation)
+        _run_case(target, capturer, analyzer, viewport, diff_settings, baseline, mutation, mask)
         for mutation in mutations
     )
     return EvaluationReport(
@@ -77,11 +78,12 @@ def _run_case(
     diff_settings: DiffSettings,
     baseline: bytes,
     mutation: Mutation,
+    mask: tuple[str, ...],
 ) -> CaseResult:
     logger.info("Evaluating mutation %s", mutation.id)
     try:
         mutated = capturer.capture(
-            CaptureRequest(target=target, viewport=viewport, script=mutation.script)
+            CaptureRequest(target=target, viewport=viewport, script=mutation.script, mask=mask)
         )
         diff = compare_images(baseline, mutated, diff_settings)
     except (CaptureError, ImageError) as exc:

@@ -7,12 +7,14 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from PIL import Image
+
+from smartvisionqa import imaging
 from smartvisionqa.ai.parsing import AIResponseError, parse_region_analysis
 from smartvisionqa.ai.prompt import build_prompt
 from smartvisionqa.ai.schema import Change, normalize_changes, response_schema
 from smartvisionqa.config import AISettings
 from smartvisionqa.diff import Region
-from smartvisionqa.imaging import crop_pair
 
 logger = logging.getLogger(__name__)
 
@@ -79,12 +81,17 @@ class VisionAnalyzer:
         self, before: bytes, after: bytes, regions: Sequence[Region]
     ) -> tuple[RegionFinding, ...]:
         selected = list(regions)[: self._settings.max_regions]
-        return tuple(self._analyze_region(before, after, region) for region in selected)
+        if not selected:
+            return ()
+        pair = imaging.load_pair(before, after)  # decode full pages once, not per region
+        return tuple(self._analyze_region(pair, region) for region in selected)
 
-    def _analyze_region(self, before: bytes, after: bytes, region: Region) -> RegionFinding:
+    def _analyze_region(
+        self, pair: tuple[Image.Image, Image.Image], region: Region
+    ) -> RegionFinding:
         settings = self._settings
-        crop_before, crop_after = crop_pair(
-            before, after, region, pad=settings.crop_padding, max_side=settings.crop_max_side
+        crop_before, crop_after = imaging.crop_loaded_pair(
+            pair, region, pad=settings.crop_padding, max_side=settings.crop_max_side
         )
         messages = [
             {"role": "user", "content": build_prompt(region), "images": [crop_before, crop_after]}

@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 from urllib.parse import ParseResult, unquote, urlparse, urlunparse
 
 _ALLOWED_URL_SCHEMES = frozenset({"http", "https"})
+_USERINFO = re.compile(r"://[^/?#@]*@")
 
 
 class TargetError(ValueError):
@@ -33,12 +35,17 @@ def resolve_target(raw: str, base_dir: Path) -> Target:
     if not value:
         raise TargetError("Target is empty")
 
-    parsed = urlparse(value)
-    scheme = parsed.scheme.lower()
-    if scheme in _ALLOWED_URL_SCHEMES:
-        if not parsed.hostname:
-            raise TargetError(f"URL has no host: {value!r}")
-        return Target(kind="url", location=value, label=_redact(parsed))
+    try:
+        parsed = urlparse(value)
+        scheme = parsed.scheme.lower()
+        if scheme in _ALLOWED_URL_SCHEMES:
+            if not parsed.hostname:
+                raise TargetError(f"URL has no host: {display_label(value)!r}")
+            return Target(kind="url", location=value, label=_redact(parsed))
+    except ValueError as exc:  # bad IPv6 literal, port out of range, ...
+        if isinstance(exc, TargetError):
+            raise
+        raise TargetError(f"Malformed URL {display_label(value)!r}: {exc}") from exc
     if scheme == "file":
         return _file_target(Path(unquote(parsed.path)), label=value)
     if len(scheme) > 1:  # single letters are Windows drive letters
@@ -51,12 +58,20 @@ def resolve_target(raw: str, base_dir: Path) -> Target:
 
 
 def display_label(raw: str) -> str:
-    """Publishable label for any raw target string (URLs lose credentials and query)."""
+    """Publishable label for any raw target string; never raises, never leaks secrets."""
     value = raw.strip()
-    parsed = urlparse(value)
-    if parsed.scheme.lower() in _ALLOWED_URL_SCHEMES and parsed.hostname:
-        return _redact(parsed)
-    return value
+    try:
+        parsed = urlparse(value)
+        if parsed.scheme.lower() in _ALLOWED_URL_SCHEMES and parsed.hostname:
+            return _redact(parsed)
+    except ValueError:
+        pass
+    if "://" not in value:
+        return value
+    # Malformed URL: strip user-info, query and fragment textually.
+    stripped = _USERINFO.sub("://", value)
+    base = re.split(r"[?#]", stripped, maxsplit=1)[0]
+    return f"{base}?…" if "?" in stripped else base
 
 
 def _redact(parsed: ParseResult) -> str:

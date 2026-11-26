@@ -1,6 +1,8 @@
 # Reproducible local/CI run with a separate Ollama service.
-#   docker compose run --rm smartvisionqa                 # demo config
-#   docker compose run --rm smartvisionqa compare A B     # any CLI command
+#   mkdir -p results baselines            # must exist and belong to you (Linux bind mounts)
+#   export SVQA_UID=$(id -u) SVQA_GID=$(id -g)
+#   docker compose run --rm smartvisionqa                               # demo config + AI
+#   docker compose run --rm --no-deps smartvisionqa compare A B --no-ai # pixel-only, no model pull
 # Override the model with SVQA_MODEL=qwen2.5vl:3b docker compose run --rm smartvisionqa
 services:
   ollama:
@@ -25,12 +27,15 @@ services:
 
   smartvisionqa:
     build: .
+    # Run as the host user so ./results and ./baselines stay writable on Linux.
+    user: "${SVQA_UID:-1000}:${SVQA_GID:-1000}"
     depends_on:
       model:
         condition: service_completed_successfully
     environment:
       OLLAMA_HOST: http://ollama:11434
       SVQA_MODEL: ${SVQA_MODEL:-qwen2.5vl:7b} # read by the CLI for every command
+      HOME: /tmp # arbitrary uid has no home directory in the image
     volumes:
       - ./results:/app/results
       - ./baselines:/app/baselines

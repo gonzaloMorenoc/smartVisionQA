@@ -88,12 +88,23 @@ class PlaywrightCapturer:
             self._playwright = None
 
     def capture(self, request: CaptureRequest) -> bytes:
+        """Capture one page. Every browser failure becomes a :class:`CaptureError`."""
         from playwright.sync_api import Error  # noqa: PLC0415
 
         if self._browser is None:
             raise CaptureError("PlaywrightCapturer must be used as a context manager")
-        settings, viewport = self._settings, request.viewport
-        context = self._browser.new_context(
+        context = None
+        try:
+            context = self._new_context(request.viewport)
+            return self._render(context.new_page(), request)
+        except Error as exc:
+            raise CaptureError(f"Capture of {request.target.label} failed: {exc}") from exc
+        finally:
+            if context is not None:
+                _close_quietly(context, request.target.label)
+
+    def _new_context(self, viewport: Viewport) -> Any:
+        return self._browser.new_context(
             viewport={"width": viewport.width, "height": viewport.height},
             device_scale_factor=viewport.device_scale_factor,
             reduced_motion="reduce",
@@ -102,30 +113,37 @@ class PlaywrightCapturer:
             timezone_id="UTC",
             bypass_csp=True,  # our freeze stylesheet must work on pages with a strict CSP
         )
-        try:
-            page = context.new_page()
-            page.set_default_timeout(settings.timeout_ms)
-            response = page.goto(request.target.location, wait_until="load")
-            _ensure_healthy(request.target, response)
-            if settings.disable_animations:
-                page.add_style_tag(content=_FREEZE_CSS)
-            page.evaluate("() => document.fonts.ready.then(() => true)")
-            if settings.wait_for_selector:
-                page.wait_for_selector(settings.wait_for_selector, state="visible")
-            if request.script:
-                page.evaluate(request.script)
-            if settings.extra_wait_ms:
-                page.wait_for_timeout(settings.extra_wait_ms)
-            png: bytes = page.screenshot(
-                full_page=settings.full_page,
-                animations="disabled" if settings.disable_animations else "allow",
-                caret="hide",
-                mask=[page.locator(selector) for selector in request.mask],
-                mask_color=settings.mask_color,
-                type="png",
-            )
-            return png
-        except Error as exc:
-            raise CaptureError(f"Capture of {request.target.label} failed: {exc}") from exc
-        finally:
-            context.close()
+
+    def _render(self, page: Any, request: CaptureRequest) -> bytes:
+        settings = self._settings
+        page.set_default_timeout(settings.timeout_ms)
+        response = page.goto(request.target.location, wait_until="load")
+        _ensure_healthy(request.target, response)
+        if settings.disable_animations:
+            page.add_style_tag(content=_FREEZE_CSS)
+        page.evaluate("() => document.fonts.ready.then(() => true)")
+        if settings.wait_for_selector:
+            page.wait_for_selector(settings.wait_for_selector, state="visible")
+        if request.script:
+            page.evaluate(request.script)
+        if settings.extra_wait_ms:
+            page.wait_for_timeout(settings.extra_wait_ms)
+        png: bytes = page.screenshot(
+            full_page=settings.full_page,
+            animations="disabled" if settings.disable_animations else "allow",
+            caret="hide",
+            mask=[page.locator(selector) for selector in request.mask],
+            mask_color=settings.mask_color,
+            type="png",
+        )
+        return png
+
+
+def _close_quietly(context: Any, label: str) -> None:
+    """Closing must never replace the real error (or turn a success into a failure)."""
+    from playwright.sync_api import Error  # noqa: PLC0415
+
+    try:
+        context.close()
+    except Error as exc:
+        logger.warning("Could not close browser context for %s: %s", label, exc)

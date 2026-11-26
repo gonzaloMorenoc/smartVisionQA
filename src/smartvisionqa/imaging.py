@@ -53,19 +53,32 @@ def to_png(image: Image.Image) -> bytes:
     return buffer.getvalue()
 
 
+def load_pair(before: bytes, after: bytes) -> tuple[Image.Image, Image.Image]:
+    """Decode both screenshots once and pad them to a common size."""
+    img_before, img_after = load_rgb(before), load_rgb(after)
+    width = max(img_before.width, img_after.width)
+    height = max(img_before.height, img_after.height)
+    return pad_to(img_before, width, height), pad_to(img_after, width, height)
+
+
+def crop_loaded_pair(
+    pair: tuple[Image.Image, Image.Image], region: Region, pad: int, max_side: int
+) -> tuple[bytes, bytes]:
+    """Crop the same (padded) region from an already decoded pair."""
+    width, height = pair[0].size
+    box = region.padded(pad, width, height)
+    crops = [
+        to_png(_fit(image.crop((box.x, box.y, box.x + box.width, box.y + box.height)), max_side))
+        for image in pair
+    ]
+    return crops[0], crops[1]
+
+
 def crop_pair(
     before: bytes, after: bytes, region: Region, pad: int, max_side: int
 ) -> tuple[bytes, bytes]:
     """Crop the same (padded) region from both images, downscaled to ``max_side``."""
-    img_before, img_after = load_rgb(before), load_rgb(after)
-    width = max(img_before.width, img_after.width)
-    height = max(img_before.height, img_after.height)
-    box = region.padded(pad, width, height)
-    crops = []
-    for image in (pad_to(img_before, width, height), pad_to(img_after, width, height)):
-        crop = image.crop((box.x, box.y, box.x + box.width, box.y + box.height))
-        crops.append(to_png(_fit(crop, max_side)))
-    return crops[0], crops[1]
+    return crop_loaded_pair(load_pair(before, after), region, pad, max_side)
 
 
 def _fit(image: Image.Image, max_side: int) -> Image.Image:

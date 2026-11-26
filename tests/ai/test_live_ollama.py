@@ -1,4 +1,4 @@
-"""Opt-in: talks to a real Ollama server (pytest -m ai). Skipped when it is not reachable."""
+"""Opt-in: talks to a real Ollama server (pytest -m ai --no-cov). Skipped if unreachable."""
 
 from __future__ import annotations
 
